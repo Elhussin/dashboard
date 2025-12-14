@@ -1,7 +1,4 @@
-from django.db import models
 
-# Create your models here.
-# sales_api/models.py
 from django.db import models
 
 # 1. نموذج المنتج (Product Model)
