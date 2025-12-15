@@ -2,34 +2,17 @@
 
 import sql from 'mssql';
 import { NextResponse, NextRequest } from 'next/server';
-const year = 2024; // يمكن جلبها من request.nextUrl.searchParams.get('year')
-// إعدادات الاتصال يتم جلبها من متغيرات البيئة
-const config = {
-    user: process.env.SQL_SERVER_USER!,
-    password: process.env.SQL_SERVER_PASSWORD!,
-    database: process.env.SQL_SERVER_DATABASE!,
-    server: process.env.SQL_SERVER_HOST!,
-    port: parseInt(process.env.SQL_SERVER_PORT || "1433"), // تحويل المنفذ إلى رقم
-    pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000
-    },
-    options: {
-        trustServerCertificate: true, // قد تحتاجها في بيئات التطوير
-        encrypt: true, // هام للاتصال عبر الإنترنت
-        cryptoCredentialsDetails: {
-            minVersion: 'TLSv1',
-            ciphers: 'DEFAULT@SECLEVEL=0'
-        } as any
-    }
-};
+import { config } from '../config';
 
-// دالة لمعالجة طلب GET (لجلب البيانات)
+
 export async function GET(request: NextRequest) {
     try {
         // 1. إنشاء الاتصال بقاعدة البيانات
         const pool = await sql.connect(config);
+
+        const yearParam = request.nextUrl.searchParams.get('Year');
+        const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+
         const reportQuery = `
     SELECT TOP (100) PERCENT dbo.Gallery.Name, 
            CASE WHEN InsuranceCompanyId IS NULL THEN 0 ELSE 1 END AS Insurance, 
@@ -66,21 +49,13 @@ export async function GET(request: NextRequest) {
     GROUP BY dbo.CustomerOrder.Trans_Year, CASE WHEN InsuranceCompanyId IS NULL THEN 0 ELSE 1 END, dbo.Gallery.GalleryID, dbo.Gallery.Name
    HAVING (dbo.CustomerOrder.Trans_Year = @Year);
     `;
-        // 2. تنفيذ الاستعلام
-        // مثال: جلب أول 10 مستخدمين
-        // const result = await pool.request().query(reportQuery);
-        // console.log("result", result);
-
+        console.log("year", year);
         const result = await pool.request()
-            // تعريف نوع المعامل
-            .input('Year', sql.Int, year) 
-            // تنفيذ الاستعلام
+            .input('Year', sql.Int, year)
             .query(reportQuery);
         console.log("result", result);
-        // 3. إغلاق الاتصال (اختياري، المكتبة تتعامل مع التجميع)
         await pool.close();
 
-        // 4. إرجاع البيانات كاستجابة JSON إلى الواجهة الأمامية
         return NextResponse.json({
             message: 'Data fetched successfully',
             data: result.recordset

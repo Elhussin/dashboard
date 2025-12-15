@@ -1,21 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import SalesDashboard from '../../components/SalesDashboard';
-import { SalesRecord } from '../../types/sales';
+import { useState, useEffect } from "react";
+import SalesDashboard from "../../components/SalesDashboard";
+import { SalesRecord } from "../../types/sales";
+import { Loading } from "../../components/Loading";
 
 export default function HomePage() {
   const [data, setData] = useState<SalesRecord[]>([]);
+  const [year, setYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch('/api/users');
+        const response = await fetch("/api/users/?Year=" + year);
+        console.log(response);
 
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error("Network response was not ok");
         }
 
         const result = await response.json();
@@ -29,15 +32,7 @@ export default function HomePage() {
     }
 
     fetchData();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  }, [year]);
 
   if (error) {
     return (
@@ -47,5 +42,23 @@ export default function HomePage() {
     );
   }
 
-  return <SalesDashboard data={data} />;
+  return (
+    <>
+      <div className="bg-slate-900 text-white p-4 flex items-center justify-center">
+        <input
+          type="number"
+          className="p-2 border border-slate-600 rounded"
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          placeholder="Inter year"
+        />
+        <button className="p-2 border border-slate-600 rounded" onClick={() => setYear(year)}>Submit</button>
+      </div>
+
+      {isLoading && (
+        <Loading />
+      )}
+      <SalesDashboard data={data} />
+    </>
+  );
 }
