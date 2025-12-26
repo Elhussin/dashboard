@@ -21,3 +21,13 @@ export interface ApiResponse {
     message: string;
     data: SalesRecord[];
 }
+
+export interface Store {
+    StoreID: number;
+    Name: string;
+}
+
+export interface Gallery {
+    GalleryID: number;
+    Name: string;
+}

@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
 
         const startDateParam = request.nextUrl.searchParams.get('startDate');
         const endDateParam = request.nextUrl.searchParams.get('endDate');
+        const storeIdParam = request.nextUrl.searchParams.get('storeId');
+        const galleryIdParam = request.nextUrl.searchParams.get('galleryId');
+        const paymentTypeParam = request.nextUrl.searchParams.get('paymentType');
 
         // Validation - ensure dates are provided
         if (!startDateParam || !endDateParam) {
@@ -135,6 +138,10 @@ export async function GET(request: NextRequest) {
                 )
                 AND dbo.CustomerOrder.OrderDate >= @StartDate
                 AND dbo.CustomerOrder.OrderDate <= @EndDate
+                ${storeIdParam ? 'AND dbo.CustomerOrder.StoreID = @StoreId' : ''}
+                ${galleryIdParam ? 'AND dbo.CustomerOrder.GalleryID = @GalleryId' : ''}
+                ${paymentTypeParam === 'cash' ? 'AND InsuranceCompanyId IS NULL' : ''}
+                ${paymentTypeParam === 'insurance' ? 'AND InsuranceCompanyId IS NOT NULL' : ''}
 
             GROUP BY
                 dbo.CustomerOrder.Trans_Year,
@@ -143,10 +150,14 @@ export async function GET(request: NextRequest) {
                 dbo.Gallery.Name
         `;
 
-        const result = await pool.request()
+        const dbRequest = pool.request()
             .input('StartDate', sql.Date, startDateParam)
-            .input('EndDate', sql.Date, endDateParam)
-            .query(reportQuery);
+            .input('EndDate', sql.Date, endDateParam);
+
+        if (storeIdParam) dbRequest.input('StoreId', sql.Int, storeIdParam);
+        if (galleryIdParam) dbRequest.input('GalleryId', sql.Int, galleryIdParam);
+
+        const result = await dbRequest.query(reportQuery);
 
         await pool.close();
 

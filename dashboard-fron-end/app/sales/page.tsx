@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SalesDashboard from "../../components/SalesDashboard";
-import { SalesRecord } from "../../types/sales";
+import { SalesRecord, Store, Gallery } from "../../types/sales";
 import { Loading } from "../../components/Loading";
 
 export default function HomePage() {
@@ -12,6 +12,13 @@ export default function HomePage() {
   // We'll just provide inputs.
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const [stores, setStores] = useState<Store[]>([]);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
+
+  const [selectedStore, setSelectedStore] = useState("");
+  const [selectedGallery, setSelectedGallery] = useState("");
+  const [paymentType, setPaymentType] = useState("");
 
   const [isLoading, setIsLoading] = useState(false); // Start false per request
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +32,13 @@ export default function HomePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/sales/?startDate=${startDate}&endDate=${endDate}`);
-  
+      const searchParams = new URLSearchParams({ startDate, endDate });
+      if (selectedStore) searchParams.append('storeId', selectedStore);
+      if (selectedGallery) searchParams.append('galleryId', selectedGallery);
+      if (paymentType) searchParams.append('paymentType', paymentType);
+
+      const response = await fetch(`/api/sales/?${searchParams.toString()}`);
+
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -40,6 +52,22 @@ export default function HomePage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [storesRes, galleriesRes] = await Promise.all([
+          fetch('/api/stores').then(res => res.json()),
+          fetch('/api/galleries').then(res => res.json())
+        ]);
+        if (Array.isArray(storesRes)) setStores(storesRes);
+        if (Array.isArray(galleriesRes)) setGalleries(galleriesRes);
+      } catch (e) {
+        console.error("Failed to load filters", e);
+      }
+    };
+    loadFilters();
+  }, []);
 
   if (error) {
     return (
@@ -57,7 +85,7 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="bg-slate-900 text-white p-4 flex items-center justify-center gap-4">
+      <div className="bg-slate-900 text-white p-4 flex flex-wrap items-center justify-center gap-4">
         <div className="flex flex-col">
           <label className="text-sm text-slate-400">Start Date</label>
           <input
@@ -76,6 +104,43 @@ export default function HomePage() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm text-slate-400">Store</label>
+          <select
+            className="p-2 border border-slate-600 rounded bg-slate-800 text-white w-40"
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+          >
+            <option value="">All Stores</option>
+            {stores.map(s => <option key={s.StoreID} value={s.StoreID}>{s.Name}</option>)}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm text-slate-400">Gallery</label>
+          <select
+            className="p-2 border border-slate-600 rounded bg-slate-800 text-white w-40"
+            value={selectedGallery}
+            onChange={(e) => setSelectedGallery(e.target.value)}
+          >
+            <option value="">All Galleries</option>
+            {galleries.map(g => <option key={g.GalleryID} value={g.GalleryID}>{g.Name}</option>)}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm text-slate-400">Payment</label>
+          <select
+            className="p-2 border border-slate-600 rounded bg-slate-800 text-white w-32"
+            value={paymentType}
+            onChange={(e) => setPaymentType(e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="cash">Cash Only</option>
+            <option value="insurance">Insurance Only</option>
+          </select>
         </div>
 
         <div className="flex flex-col justify-end">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import MultiSelect from "@/components/MultiSelect";
 import { Loading } from "@/components/Loading";
 
@@ -99,6 +99,16 @@ export default function SupplierReport() {
         fetchData();
     };
 
+    // Analytics Calculations
+    const analytics = useMemo(() => {
+        return {
+            totalQty: data.reduce((acc, item) => acc + (item.Quantity || 0), 0),
+            totalBasePriceSum: data.reduce((acc, item) => acc + (item.PurchaseBasePrice || 0), 0),
+            totalCostValue: data.reduce((acc, item) => acc + ((item.CostPrice || 0) * (item.Quantity || 0)), 0),
+            totalRetailValue: data.reduce((acc, item) => acc + ((item.RetailPrice || 0) * (item.Quantity || 0)), 0),
+        };
+    }, [data]);
+
     return (
         <div className="min-h-screen bg-slate-900 text-slate-200 p-8 font-sans">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -115,7 +125,7 @@ export default function SupplierReport() {
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                    <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl relative z-10">
                         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
 
                             <div className="md:col-span-1">
@@ -162,6 +172,50 @@ export default function SupplierReport() {
 
                         </form>
                     </div>
+
+                    {/* Analytics Summary */}
+                    {!loading && data.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fadeIn">
+                            {/* Total Quantity */}
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Quantity</p>
+                                <p className="text-3xl font-extrabold text-white mt-1">
+                                    {analytics.totalQty.toLocaleString()}
+                                </p>
+                            </div>
+
+                            {/* Total Base Price (Sum) */}
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Base Price</p>
+                                <p className="text-3xl font-extrabold text-emerald-400 mt-1">
+                                    {analytics.totalBasePriceSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">Sum of Base Prices</p>
+                            </div>
+
+                            {/* Total Cost Value (Recommended) */}
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Cost Value</p>
+                                <p className="text-3xl font-extrabold text-indigo-400 mt-1">
+                                    {analytics.totalCostValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">Qty × Cost Price</p>
+                            </div>
+
+                            {/* Total Retail Value (Recommended) */}
+                            <div className="bg-slate-800/60 backdrop-blur border border-slate-700/50 p-5 rounded-2xl shadow-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Potential Sales</p>
+                                <p className="text-3xl font-extrabold text-purple-400 mt-1">
+                                    {analytics.totalRetailValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">Qty × Retail Price</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Content Area */}
